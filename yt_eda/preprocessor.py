@@ -34,7 +34,7 @@ class DataPreprocessor:
 
     def _encode_categorical_columns(self):
         label_encoders = {}
-        for column in ['category', 'channel_type', 'abbreviation']:
+        for column in ['category', 'channel_type', 'Abbreviation']:
             le = LabelEncoder()
             self.data[column] = le.fit_transform(self.data[column].astype(str))
             label_encoders[column] = le
