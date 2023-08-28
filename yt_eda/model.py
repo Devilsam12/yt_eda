@@ -21,7 +21,7 @@ class Model:
         Initialize the Model object with an ML model and target variable.
         
         Parameters:
-        - model (object): Machine learning model to be used.
+        - Data (pd.Dataframe): Pandas Dataframe on which model is to be trained.
         - target (str): Name of the target variable column.
         """
         self.data = data
