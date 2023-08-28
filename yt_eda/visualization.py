@@ -53,7 +53,8 @@ class PostprocessVisualizer:
     def plot_correlation_analysis(self, target):
         correlations = self.data.corr()[target].sort_values(ascending=False)
         plt.figure(figsize=(15, 6))
-        sns.barplot(correlations.index, correlations.values)
+        sns.barplot(correlations)
+        #sns.barplot(correlations.index, correlations.values)
         plt.title(f"Correlation with {target}")
         plt.xticks(rotation=45)
         plt.show()

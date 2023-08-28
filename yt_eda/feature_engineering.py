@@ -19,15 +19,17 @@ class FeatureEngineer:
 
     def _remove_low_importance_features(self, threshold=0.004):
         importances = self._find_feature_importance()
-        columns_to_drop = self.data.columns[importances < threshold].tolist()
+        print(importances)
+        columns_to_consider = self.data.drop(columns=[self.target])
+        columns_to_drop = columns_to_consider.columns[importances < threshold].tolist()
         self.data.drop(columns=columns_to_drop, inplace=True)
 
     def _remove_selected_columns(self):
-        columns_to_remove = ["youtuber", "Title", "Country"]
+        columns_to_remove = ["Youtuber", "Title", "Country"]
         self.data.drop(columns=columns_to_remove, inplace=True, errors='ignore')  # Using errors='ignore' to avoid errors if columns don't exist.
 
     def _calculate_average_yearly_earnings(self):
-        self.data["average_yearly_earnings"] = (self.data["lowest_yearly_earnings"] + self.data["highest_yearly_earnings"]) / 2
+        self.data["avg_yearly_earnings"] = (self.data["lowest_yearly_earnings"] + self.data["highest_yearly_earnings"]) / 2
 
     def _drop_earnings_columns(self):
         columns_to_remove = ["lowest_monthly_earnings", "highest_monthly_earnings", "lowest_yearly_earnings", "highest_yearly_earnings"]
@@ -43,8 +45,10 @@ class FeatureEngineer:
         self.data['created_date'] = self.data['created_date'].astype(int)
 
         # Create datetime column
-        self.data['created_datetime'] = pd.to_datetime(self.data[['created_year', 'created_month', 'created_date']])
-        
+        self.data['created_datetime'] = pd.to_datetime(self.data['created_year'].astype(str) + 
+                                               '-' + self.data['created_month'].astype(str) + 
+                                               '-' + self.data['created_date'].astype(str))
+
         # Calculate age in months
         current_date = datetime.now()
         diff = (current_date - self.data['created_datetime'])
@@ -55,9 +59,10 @@ class FeatureEngineer:
 
 
     def engineer_features(self):
-        self._remove_low_importance_features()
+        self._handle_datetime_and_age()
         self._remove_selected_columns()
         self._calculate_average_yearly_earnings()
+        #self._remove_low_importance_features()
         self._drop_earnings_columns()
         return self.data
 
