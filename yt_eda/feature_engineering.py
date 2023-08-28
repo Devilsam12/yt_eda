@@ -3,8 +3,23 @@ from sklearn.ensemble import RandomForestRegressor
 from datetime import datetime
 
 class FeatureEngineer:
+    """
+    Handles feature engineering tasks for the dataset.
+    
+    Methods:
+    - execute_engineering: Perform all the feature engineering tasks on the data.
+    - average_earnings: Create an average earnings column.
+    - remove_low_importance_features: Removes features with importance less than a given threshold.
+    """
 
     def __init__(self, data, target):
+        """
+        Initialize the FeatureEngineering object with data and target column.
+        
+        Parameters:
+        - data (pd.DataFrame): Input dataset for feature engineering.
+        - target (str, optional): Target column for the prediction. Default is 'average_yearly_earnings'.
+        """
         self.data = data
         self.target = target
 
@@ -18,6 +33,18 @@ class FeatureEngineer:
         return model.feature_importances_
 
     def _remove_low_importance_features(self, threshold=0.004):
+        """
+        Remove features with importance values less than the specified threshold.
+
+        Based on a fitted Random Forest model, this method identifies and drops columns/features 
+        with importance values less than the given threshold.
+
+        Parameters:
+        - threshold (float, optional): Importance value threshold. Default is 0.004.
+
+        Returns:
+        - pd.DataFrame: Dataset without the low importance features.
+        """
         importances = self._find_feature_importance()
         print(importances)
         columns_to_consider = self.data.drop(columns=[self.target])
@@ -29,6 +56,14 @@ class FeatureEngineer:
         self.data.drop(columns=columns_to_remove, inplace=True, errors='ignore')  # Using errors='ignore' to avoid errors if columns don't exist.
 
     def _calculate_average_yearly_earnings(self):
+        """
+        Calculate the average yearly earnings column.
+        
+        Creates a new column 'average_yearly_earnings' by averaging 'highest_yearly_earnings' and 'lowest_yearly_earnings' columns.
+        
+        Returns:
+        - pd.DataFrame: Dataset with the new 'average_yearly_earnings' column.
+        """
         self.data["avg_yearly_earnings"] = (self.data["lowest_yearly_earnings"] + self.data["highest_yearly_earnings"]) / 2
 
     def _drop_earnings_columns(self):
@@ -59,6 +94,16 @@ class FeatureEngineer:
 
 
     def engineer_features(self):
+        """
+        Execute all feature engineering tasks on the dataset.
+        1. Computes created date and age of channel
+        2. Computes average yearly earnings.
+        3. Removes columns with low importance based on a Random Forest model.
+        4. Drops specific columns which are not needed for prediction.
+        
+        Returns:
+        - pd.DataFrame: Dataset after all feature engineering tasks.
+        """
         self._handle_datetime_and_age()
         self._remove_selected_columns()
         self._calculate_average_yearly_earnings()
