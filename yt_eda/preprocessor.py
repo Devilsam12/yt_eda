@@ -1,5 +1,6 @@
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
+from datetime import datetime
 
 class DataPreprocessor:
 
@@ -38,6 +39,27 @@ class DataPreprocessor:
             le = LabelEncoder()
             self.data[column] = le.fit_transform(self.data[column].astype(str))
             label_encoders[column] = le
+    
+    def _handle_datetime_and_age(self):
+        month_dict = {'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6,
+                      'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12}
+        
+        # Convert to numeric
+        self.data['created_month'] = self.data['created_month'].map(month_dict).astype(int)
+        self.data['created_year'] = self.data['created_year'].astype(int)
+        self.data['created_date'] = self.data['created_date'].astype(int)
+
+        # Create datetime column
+        self.data['created_datetime'] = pd.to_datetime(self.data[['created_year', 'created_month', 'created_date']])
+        
+        # Calculate age in months
+        current_date = datetime.now()
+        diff = (current_date - self.data['created_datetime'])
+        self.data['age_in_months'] = diff.dt.days // 30
+        
+        # Drop unnecessary columns
+        self.data.drop(columns=['created_year', 'created_month', 'created_date', 'created_datetime'], inplace=True)
+
 
     def _remove_null_values(self):
         self.data.dropna(inplace=True)
