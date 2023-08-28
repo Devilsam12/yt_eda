@@ -1,68 +1,52 @@
 import pandas as pd
 from sklearn.preprocessing import LabelEncoder
 
-def fill_category_channel_type(data):
-    channel_to_category = data.groupby('channel_type')['category'].apply(lambda x: x.mode()[0]).to_dict()
-    category_to_channel = data.groupby('category')['channel_type'].apply(lambda x: x.mode()[0]).to_dict()
+class DataPreprocessor:
 
-    data['channel_type'] = data.apply(
-        lambda row: channel_to_category[row['category']] if pd.isnull(row['channel_type']) else row['channel_type'],
-        axis=1
-    )
+    def __init__(self, data):
+        self.data = data
 
-    data['category'] = data.apply(
-        lambda row: category_to_channel[row['channel_type']] if pd.isnull(row['category']) else row['category'],
-        axis=1
-    )
+    def _fill_category_channel_type(self):
+        mapping_category_channel_type = self.data.groupby('category')['channel_type'].apply(lambda x: x.mode()[0]).to_dict()
+        mapping_channel_type_category = self.data.groupby('channel_type')['category'].apply(lambda x: x.mode()[0]).to_dict()
 
-    return data
+        # Fill missing channel_type based on category
+        mask = self.data['channel_type'].isnull()
+        self.data.loc[mask, 'channel_type'] = self.data.loc[mask, 'category'].map(mapping_category_channel_type)
 
-def fill_country_rank(data):
-    country_groups = data.groupby('country')
-    for _, group in country_groups:
-        ordered_idxs = group['video_views_rank'].argsort().values
-        filled_values = group.loc[ordered_idxs, 'country_rank'].interpolate().bfill().ffill().values
-        data.loc[group.index, 'country_rank'] = filled_values
+        # Fill missing category based on channel_type
+        mask = self.data['category'].isnull()
+        self.data.loc[mask, 'category'] = self.data.loc[mask, 'channel_type'].map(mapping_channel_type_category)
 
-    return data
+    def _fill_country_rank(self):
+        self.data['country_rank'] = self.data.groupby('country')['video_views_rank'].transform(lambda x: x.interpolate(method='linear'))
 
-def fill_channel_type_rank(data):
-    channel_type_groups = data.groupby('channel_type')
-    for _, group in channel_type_groups:
-        ordered_idxs = group['video_views_rank'].argsort().values
-        filled_values = group.loc[ordered_idxs, 'channel_type_rank'].interpolate().bfill().ffill().values
-        data.loc[group.index, 'channel_type_rank'] = filled_values
+    def _fill_channel_type_rank(self):
+        self.data['channel_type_rank'] = self.data.groupby('channel_type')['video_views_rank'].transform(lambda x: x.interpolate(method='linear'))
 
-    return data
+    def _fill_subscribers_last_30_days(self):
+        mask = (self.data['subscribers_for_last_30_days'].isnull()) & (self.data['video_views_rank'] > self.data['video_views_rank'].quantile(0.25))
+        self.data.loc[mask, 'subscribers_for_last_30_days'] = 0
 
-def fill_subscribers_last_30_days(data):
-    mask = (data['video_views_rank'] > data['video_views_rank'].quantile(0.25)) & data['subscribers_for_last_30_days'].isna()
-    data.loc[mask, 'subscribers_for_last_30_days'] = 0
+        # For the rest of the missing values, use the mean of similar channels
+        fill_value = self.data['subscribers_for_last_30_days'].mean()
+        self.data['subscribers_for_last_30_days'].fillna(fill_value, inplace=True)
 
-    median_subs = data['subscribers_for_last_30_days'].median()
-    data['subscribers_for_last_30_days'].fillna(median_subs, inplace=True)
+    def _encode_categorical_columns(self):
+        label_encoders = {}
+        for column in ['category', 'channel_type', 'abbreviation']:
+            le = LabelEncoder()
+            self.data[column] = le.fit_transform(self.data[column].astype(str))
+            label_encoders[column] = le
 
-    return data
+    def _remove_null_values(self):
+        self.data.dropna(inplace=True)
 
-def encode_categorical_columns(data):
-    label_encoders = {}
-    for col in ['category', 'channel_type', 'abbreviation']:
-        le = LabelEncoder()
-        data[col] = le.fit_transform(data[col].astype(str))
-        label_encoders[col] = le
-
-    return data, label_encoders
-
-def remove_null_values(data):
-    return data.dropna()
-
-def preprocess_data(data):
-    data = fill_category_channel_type(data)
-    data = fill_country_rank(data)
-    data = fill_channel_type_rank(data)
-    data = fill_subscribers_last_30_days(data)
-    data, _ = encode_categorical_columns(data)
-    data = remove_null_values(data)
-
-    return data
-
+    def preprocess(self):
+        self._fill_category_channel_type()
+        self._fill_country_rank()
+        self._fill_channel_type_rank()
+        self._fill_subscribers_last_30_days()
+        self._encode_categorical_columns()
+        self._remove_null_values()
+        return self.data
