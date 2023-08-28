@@ -20,7 +20,7 @@ class DataPreprocessor:
         self.data.loc[mask, 'category'] = self.data.loc[mask, 'channel_type'].map(mapping_channel_type_category)
 
     def _fill_country_rank(self):
-        self.data['country_rank'] = self.data.groupby('country')['video_views_rank'].transform(lambda x: x.interpolate(method='linear'))
+        self.data['country_rank'] = self.data.groupby('Country')['video_views_rank'].transform(lambda x: x.interpolate(method='linear'))
 
     def _fill_channel_type_rank(self):
         self.data['channel_type_rank'] = self.data.groupby('channel_type')['video_views_rank'].transform(lambda x: x.interpolate(method='linear'))
